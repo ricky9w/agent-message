@@ -1,6 +1,6 @@
 {
   "name": "agent-message",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lets this session exchange messages with other coding agents, on this machine or across your devices.",
   "keywords": ["agents", "messaging", "channel"],
   "channels": [
