@@ -38,6 +38,7 @@ export class RelayLink {
   private timer?: Timer;
   private attempt = 0;
   private stopped = false;
+  private settled = false;
   private queue = Promise.resolve();
 
   constructor(
@@ -47,6 +48,11 @@ export class RelayLink {
     private readonly now: () => number,
   ) {
     void this.connect();
+  }
+
+  /** Whether the first connection attempt is still under way, so that "not connected" is not yet news. */
+  get connecting(): boolean {
+    return !this.settled && !this.stopped;
   }
 
   get connected(): boolean {
@@ -87,6 +93,9 @@ export class RelayLink {
       else if (socket.readyState === WebSocket.OPEN) socket.send("ping");
     }, PING_INTERVAL_MS);
 
+    socket.onopen = () => {
+      this.settled = true;
+    };
     socket.onmessage = (event) => {
       heardAt = this.now();
       if (event.data === "pong") return;
@@ -105,6 +114,7 @@ export class RelayLink {
   }
 
   private retry(cause: unknown): void {
+    this.settled = true;
     if (this.stopped) return;
     const delay = reconnectDelay(this.attempt++);
     log(`relay connection lost, retrying in ${Math.round(delay / 1000)}s`, cause);

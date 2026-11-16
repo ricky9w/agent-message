@@ -13,7 +13,16 @@ export type NetworkStatus =
   | { state: "none" }
   /** Waiting for a member device to approve this one. */
   | { state: "joining"; relay: string; code: string }
-  | { state: "joined"; relay: string; network: string; connected: boolean; pending: number; devices: DeviceStatus[] }
+  | {
+      state: "joined";
+      relay: string;
+      network: string;
+      connected: boolean;
+      /** The node has only just started connecting, so `connected: false` is not yet meaningful. */
+      connecting: boolean;
+      pending: number;
+      devices: DeviceStatus[];
+    }
   /** The relay refused this device for good; `reason` says why. */
   | { state: "stopped"; relay: string; reason: string };
 

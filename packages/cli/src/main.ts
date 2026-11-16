@@ -96,16 +96,16 @@ function describe(status: NetworkStatus): string {
 }
 
 /**
- * The status once the node's connection to the relay is up. The node connects in the background after
- * founding or joining, so the status right after either would say "not connected". Gives up after a
- * few seconds and reports whatever the state is then.
+ * The network status, read once the node's first attempt to reach the relay has had its outcome.
+ * The node connects in the background after starting, founding or joining, so a status read in that
+ * moment would say "not connected" about a connection that is about to succeed.
  */
-async function connectedStatus(): Promise<NetworkStatus> {
+async function settledStatus(): Promise<NetworkStatus> {
   const deadline = Date.now() + 10_000;
   for (;;) {
     const status = await rpc("network.status", {});
-    if (status.state !== "joined" || status.connected || Date.now() > deadline) return status;
-    await Bun.sleep(200);
+    if (status.state !== "joined" || !status.connecting || Date.now() > deadline) return status;
+    await Bun.sleep(100);
   }
 }
 
@@ -115,7 +115,7 @@ async function relay(action: string | undefined, argument: string | undefined): 
     case "init": {
       const token = process.env.AGENT_MESSAGE_BOOTSTRAP_TOKEN ?? prompt("Bootstrap token:") ?? "";
       await rpc("network.init", { relay: required(argument, "relay URL"), token: token.trim(), deviceName });
-      const status = await connectedStatus();
+      const status = await settledStatus();
       return print(status, describe(status));
     }
     case "join": {
@@ -128,7 +128,7 @@ async function relay(action: string | undefined, argument: string | undefined): 
         status = await rpc("network.status", {});
       }
       if (status.state !== "joined") throw new ApiError("join_failed", `Joining failed; see ${logPath}`);
-      status = await connectedStatus();
+      status = await settledStatus();
       return print(status, describe(status));
     }
     case "invite": {
@@ -138,7 +138,7 @@ async function relay(action: string | undefined, argument: string | undefined): 
       return print({ command }, `On the new device run:\n  ${command}`);
     }
     case "status": {
-      const status = await rpc("network.status", {});
+      const status = await settledStatus();
       return print(status, describe(status));
     }
     case "leave":

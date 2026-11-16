@@ -92,6 +92,7 @@ export class Network {
       relay: this.relay.href,
       network: this.roster.network,
       connected: this.link?.connected ?? false,
+      connecting: this.link?.connecting ?? false,
       pending: this.store.outbox().length,
       devices: [...this.roster.devices.values()].map(({ id, name }) => ({
         id,
