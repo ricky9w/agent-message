@@ -95,16 +95,27 @@ function describe(status: NetworkStatus): string {
   }
 }
 
+/**
+ * The status once the node's connection to the relay is up. The node connects in the background after
+ * founding or joining, so the status right after either would say "not connected". Gives up after a
+ * few seconds and reports whatever the state is then.
+ */
+async function connectedStatus(): Promise<NetworkStatus> {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const status = await rpc("network.status", {});
+    if (status.state !== "joined" || status.connected || Date.now() > deadline) return status;
+    await Bun.sleep(200);
+  }
+}
+
 async function relay(action: string | undefined, argument: string | undefined): Promise<void> {
   const deviceName = flags["device-name"];
   switch (action) {
     case "init": {
       const token = process.env.AGENT_MESSAGE_BOOTSTRAP_TOKEN ?? prompt("Bootstrap token:") ?? "";
-      const status = await rpc("network.init", {
-        relay: required(argument, "relay URL"),
-        token: token.trim(),
-        deviceName,
-      });
+      await rpc("network.init", { relay: required(argument, "relay URL"), token: token.trim(), deviceName });
+      const status = await connectedStatus();
       return print(status, describe(status));
     }
     case "join": {
@@ -117,6 +128,7 @@ async function relay(action: string | undefined, argument: string | undefined): 
         status = await rpc("network.status", {});
       }
       if (status.state !== "joined") throw new ApiError("join_failed", `Joining failed; see ${logPath}`);
+      status = await connectedStatus();
       return print(status, describe(status));
     }
     case "invite": {

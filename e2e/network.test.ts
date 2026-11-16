@@ -89,7 +89,11 @@ afterAll(async () => {
 
 test("two devices pair through the relay and their agents exchange messages", async () => {
   // Found the network on alpha.
-  expect((await alpha.run("relay", "init", relay, "--device-name", "alpha")).code).toBe(0);
+  const founded = await alpha.run("relay", "init", relay, "--device-name", "alpha");
+  expect(founded.code).toBe(0);
+  // The command reports the state once the connection is up, not the moment before.
+  expect(founded.stdout).toContain("(connected)");
+  expect(founded.stdout).toContain("alpha (this device)  online");
   const { command } = await alpha.json<{ command: string }>("relay", "invite");
   const joinUrl = command.split(" ").at(-1)!;
 
@@ -104,7 +108,7 @@ test("two devices pair through the relay and their agents exchange messages", as
   }, "beta to show a pairing code");
   expect((await alpha.run("devices", "approve", "aaaa-aaaa-aaaa")).stderr).toContain("No pending pairing request");
   expect((await alpha.run("devices", "approve", pending.code)).stdout).toBe("Added beta to the network.");
-  expect((await joining).code).toBe(0);
+  expect((await joining).stdout).toContain("(connected)");
 
   // Both see each other online.
   for (const each of [alpha, beta]) {

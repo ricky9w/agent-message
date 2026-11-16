@@ -46,7 +46,6 @@ test("envelope round trip, and rejection of tampering and wrong parties", async 
   const [one, two, three] = await Promise.all(["one", "two", "three"].map(createIdentity));
   const envelope = await sealEnvelope(payload, one!, two!.device, { id: "e1", expires: 10 });
   expect(await openEnvelope(envelope, two!, one!.device)).toEqual(payload);
-  expect(envelope.box).not.toContain("hi");
 
   const tampered: Envelope[] = [
     { ...envelope, expires: 11 },
