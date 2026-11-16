@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Releases a version: commits the version bump, waits for CI on that commit, tags it, and
 # publishes the GitHub release once the tag's workflow has published the package to npm.
+# Running it again for a version whose release is still a draft resumes that release.
 #
 # Usage: scripts/release.sh <version>      e.g. 0.2.0 or 0.2.0-rc.1
 set -euo pipefail
@@ -22,10 +23,6 @@ if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
   echo "main is not in sync with origin/main." >&2
   exit 1
 fi
-if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
-  echo "$tag already exists." >&2
-  exit 1
-fi
 
 # Waits for a workflow run on a commit to appear, then for it to finish successfully.
 wait_for() { # <workflow file> <commit>
@@ -37,30 +34,39 @@ wait_for() { # <workflow file> <commit>
   gh run watch "$run" --exit-status --interval 10 >/dev/null
 }
 
-for manifest in packages/cli/package.json plugins/claude-code/.claude-plugin/plugin.json; do
-  VERSION="$version" bun -e '
-    const path = process.argv[1];
-    const manifest = await Bun.file(path).json();
-    manifest.version = process.env.VERSION;
-    await Bun.write(path, `${JSON.stringify(manifest, null, 2)}\n`);
-  ' "$manifest"
-done
-bun run format >/dev/null
+if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
+  # A release that was interrupted after tagging: pick it up where the tag's workflow left off.
+  if [ "$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)" != true ]; then
+    echo "$tag was already released." >&2
+    exit 1
+  fi
+  commit="$(git rev-parse "$tag^{commit}")"
+else
+  for manifest in packages/cli/package.json plugins/claude-code/.claude-plugin/plugin.json; do
+    VERSION="$version" bun -e '
+      const path = process.argv[1];
+      const manifest = await Bun.file(path).json();
+      manifest.version = process.env.VERSION;
+      await Bun.write(path, `${JSON.stringify(manifest, null, 2)}\n`);
+    ' "$manifest"
+  done
+  bun run format >/dev/null
 
-if [ -n "$(git status --porcelain)" ]; then
-  git commit --quiet --all --message "chore: release $tag"
-  git push --quiet origin main
+  if [ -n "$(git status --porcelain)" ]; then
+    git commit --quiet --all --message "chore: release $tag"
+    git push --quiet origin main
+  fi
+  commit="$(git rev-parse HEAD)"
+
+  echo "Waiting for CI on ${commit:0:7}..."
+  wait_for ci.yml "$commit"
+
+  git tag "$tag"
+  git push --quiet origin "$tag"
+  prerelease=()
+  [[ "$version" == *-* ]] && prerelease=(--prerelease)
+  gh release create "$tag" --draft --verify-tag --generate-notes ${prerelease[@]+"${prerelease[@]}"} >/dev/null
 fi
-commit="$(git rev-parse HEAD)"
-
-echo "Waiting for CI on ${commit:0:7}..."
-wait_for ci.yml "$commit"
-
-git tag "$tag"
-git push --quiet origin "$tag"
-prerelease=()
-[[ "$version" == *-* ]] && prerelease=(--prerelease)
-gh release create "$tag" --draft --verify-tag --generate-notes ${prerelease[@]+"${prerelease[@]}"} >/dev/null
 
 echo "Waiting for $tag to be published to npm..."
 wait_for release.yml "$commit"
