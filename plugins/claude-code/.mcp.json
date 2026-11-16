@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agent-message": {
+      "command": "agent-message",
+      "args": ["channel"]
+    }
+  }
+}

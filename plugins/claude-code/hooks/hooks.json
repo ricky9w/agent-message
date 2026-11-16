@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "agent-message hook claude" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "agent-message hook claude" }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "command", "command": "agent-message hook claude" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "agent-message hook claude" }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "command", "command": "agent-message hook claude" }] }]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@agent-message/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "check": "wrangler types --check && tsc --noEmit",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@agent-message/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.8.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.162.0"
+  },
+  "license": "MIT"
+}

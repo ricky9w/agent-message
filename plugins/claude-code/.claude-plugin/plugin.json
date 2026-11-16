@@ -1,0 +1,13 @@
+{
+  "name": "agent-message",
+  "version": "0.1.0",
+  "description": "Lets this session exchange messages with other coding agents, on this machine or across your devices.",
+  "keywords": ["agents", "messaging", "channel"],
+  "channels": [
+    {
+      "server": "agent-message",
+      "displayName": "agent-message"
+    }
+  ],
+  "license": "MIT"
+}

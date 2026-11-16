@@ -1,0 +1,39 @@
+{
+  "name": "@ricky9w/agent-message",
+  "version": "0.1.0",
+  "description": "Messaging between coding agents, on one machine or across your devices.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ricky9w/agent-message.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/ricky9w/agent-message#readme",
+  "bugs": "https://github.com/ricky9w/agent-message/issues",
+  "keywords": [
+    "agents",
+    "messaging",
+    "claude-code",
+    "cli"
+  ],
+  "bin": {
+    "agent-message": "dist/agent-message.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "bun": ">=1.4.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun build src/main.ts --target bun --outfile dist/agent-message.js",
+    "prepack": "bun run build && cp ../../README.md ../../LICENSE ."
+  },
+  "devDependencies": {
+    "@agent-message/protocol": "workspace:*"
+  }
+}

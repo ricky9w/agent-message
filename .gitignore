@@ -1,0 +1,9 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+*.log
+relay-secrets.env
+packages/cli/README.md
+packages/cli/LICENSE
+*.tgz

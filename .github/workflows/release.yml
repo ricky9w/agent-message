@@ -1,0 +1,69 @@
+name: Release
+
+# Publishes the CLI to npm when a version tag is pushed. Authentication is npm trusted publishing
+# (OIDC), which also attaches a provenance attestation; there is no npm token in this repository.
+# Tags are pushed by scripts/release.sh.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for manifest in packages/cli/package.json plugins/claude-code/.claude-plugin/plugin.json; do
+            found="$(jq -r .version "$manifest")"
+            if [ "$found" != "$version" ]; then
+              echo "::error::$manifest is at $found, but the tag is $GITHUB_REF_NAME"
+              exit 1
+            fi
+          done
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit is not on main"
+            exit 1
+          fi
+          passed="$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --status success --json databaseId --jq length)"
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::CI has not passed for $GITHUB_SHA"
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: bun install --frozen-lockfile
+
+      # `bun pm pack` builds the bundle and resolves workspace versions; npm does the upload
+      # because it is the client that implements trusted publishing.
+      - name: Publish
+        working-directory: packages/cli
+        run: |
+          bun pm pack
+          case "$GITHUB_REF_NAME" in
+            *-*) tag=next ;;
+            *) tag=latest ;;
+          esac
+          npm publish ./*.tgz --tag "$tag"

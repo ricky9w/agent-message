@@ -1,0 +1,11 @@
+{
+  "name": "agent-message",
+  "owner": { "name": "agent-message contributors" },
+  "plugins": [
+    {
+      "name": "agent-message",
+      "source": "./plugins/claude-code",
+      "description": "Lets a Claude Code session exchange messages with other coding agents."
+    }
+  ]
+}
